@@ -1,0 +1,24 @@
+# Build artifacts
+backend/server
+backend/centrifuge-chat-backend
+frontend/.svelte-kit/
+frontend/build/
+frontend/dist/
+
+# Dependencies
+frontend/node_modules/
+
+# Logs
+*.log
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
