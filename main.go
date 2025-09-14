@@ -18,8 +18,20 @@ import (
 	"github.com/rs/cors"
 )
 
-// JWT secret key - in production, this should be from environment variable
-var jwtSecret = []byte("your-secret-key")
+// Configuration
+var (
+	jwtSecret = getEnv("JWT_SECRET", "your-secret-key")
+	port      = getEnv("PORT", "8080")
+	logLevel  = getEnv("LOG_LEVEL", "info")
+)
+
+// Helper function to get environment variables with default values
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
 
 // User represents a user in the system
 type User struct {
@@ -69,7 +81,7 @@ func main() {
 
 		claims := &jwt.MapClaims{}
 		parsedToken, err := jwt.ParseWithClaims(token, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return []byte(jwtSecret), nil
 		})
 
 		if err != nil || !parsedToken.Valid {
@@ -93,12 +105,22 @@ func main() {
 
 	// Set client connect handler  
 	node.OnConnect(func(client *centrifuge.Client) {
+		log.Printf("Client connected: %s", client.UserID())
+		
 		// Set up client event handlers
 		client.OnSubscribe(func(e centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
 			// Allow subscription to any topic for this example
 			// In production, you might want to add authorization logic here
 			log.Printf("User %s subscribed to topic %s", client.UserID(), e.Channel)
 			cb(centrifuge.SubscribeReply{}, nil)
+		})
+		
+		client.OnUnsubscribe(func(e centrifuge.UnsubscribeEvent) {
+			log.Printf("User %s unsubscribed from topic %s", client.UserID(), e.Channel)
+		})
+		
+		client.OnDisconnect(func(e centrifuge.DisconnectEvent) {
+			log.Printf("User %s disconnected: %s", client.UserID(), e.Reason)
 		})
 	})
 
@@ -119,6 +141,7 @@ func main() {
 	})
 
 	// API routes
+	router.HandleFunc("/api/health", healthHandler).Methods("GET")
 	router.HandleFunc("/api/login", loginHandler).Methods("POST")
 	router.HandleFunc("/api/topics/{topic}/messages", authMiddleware(publishMessageHandler(node))).Methods("POST")
 
@@ -134,11 +157,11 @@ func main() {
 
 	// Start HTTP server
 	server := &http.Server{
-		Addr:    ":8080",
+		Addr:    ":" + port,
 		Handler: handler,
 	}
 
-	log.Println("Server starting on :8080")
+	log.Printf("Server starting on :%s", port)
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatal(err)
@@ -164,7 +187,17 @@ func main() {
 }
 
 func handleLog(entry centrifuge.LogEntry) {
-	log.Printf("[%s] %s", strings.ToUpper(string(entry.Level)), entry.Message)
+	log.Printf("[CENTRIFUGE] %s", entry.Message)
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"status":    "ok",
+		"timestamp": time.Now().Unix(),
+		"version":   "1.0.0",
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(response)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +220,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		"exp":      time.Now().Add(time.Hour * 24).Unix(),
 	})
 
-	tokenString, err := token.SignedString(jwtSecret)
+	tokenString, err := token.SignedString([]byte(jwtSecret))
 	if err != nil {
 		http.Error(w, "Error creating token", http.StatusInternalServerError)
 		return
@@ -261,7 +294,7 @@ func authMiddleware(next http.HandlerFunc) http.HandlerFunc {
 		tokenString := strings.TrimPrefix(authHeader, "Bearer ")
 		claims := &jwt.MapClaims{}
 		token, err := jwt.ParseWithClaims(tokenString, claims, func(token *jwt.Token) (interface{}, error) {
-			return jwtSecret, nil
+			return []byte(jwtSecret), nil
 		})
 
 		if err != nil || !token.Valid {
