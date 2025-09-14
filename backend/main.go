@@ -192,11 +192,12 @@ func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.Con
 	log.Printf("Centrifuge auth successful for user: %s", username)
 	return centrifuge.ConnectReply{
 		Data: []byte(fmt.Sprintf(`{"user":"%s"}`, username)),
-		Subscriptions: map[string]centrifuge.SubscribeOptions{
-			"chat:general": {},
-			"chat:tech":    {},
-			"chat:random":  {},
-		},
+		// Remove auto-subscriptions for now to test connection
+		// Subscriptions: map[string]centrifuge.SubscribeOptions{
+		//	"chat:general": {},
+		//	"chat:tech":    {},
+		//	"chat:random":  {},
+		// },
 	}, nil
 }
 
@@ -211,6 +212,7 @@ func main() {
 
 	// Set up event handlers
 	node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		log.Printf("OnConnecting called")
 		return authHandler(ctx, e)
 	})
 

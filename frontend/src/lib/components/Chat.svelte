@@ -13,8 +13,7 @@
 	onMount(() => {
 		if ($authStore.token) {
 			connectToCentrifuge($authStore.token);
-			// Subscribe to default topic
-			subscribeToTopic('general');
+			// Don't auto-subscribe - let user select a topic manually
 		}
 	});
 

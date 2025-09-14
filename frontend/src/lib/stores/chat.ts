@@ -26,25 +26,39 @@ export const connectToCentrifuge = (token: string) => {
         centrifuge.disconnect();
     }
 
+    console.log('Creating Centrifuge connection with token:', token.substring(0, 20) + '...');
+    
+    // Try different connection configuration
     centrifuge = new Centrifuge('ws://localhost:3001/connection/websocket', {
-        token: token
+        token: token,
+        debug: true,
+        name: 'js',
+        version: '5.4.0'
     });
 
-    centrifuge.on('connecting', () => {
-        console.log('Connecting to Centrifuge...');
+    centrifuge.on('connecting', (ctx) => {
+        console.log('Connecting to Centrifuge...', ctx);
     });
 
-    centrifuge.on('connected', () => {
-        console.log('Connected to Centrifuge');
+    centrifuge.on('connected', (ctx) => {
+        console.log('Connected to Centrifuge successfully!', ctx);
         chatStore.update(state => ({ ...state, isConnected: true }));
     });
 
-    centrifuge.on('disconnected', () => {
-        console.log('Disconnected from Centrifuge');
+    centrifuge.on('disconnected', (ctx) => {
+        console.log('Disconnected from Centrifuge:', ctx);
         chatStore.update(state => ({ ...state, isConnected: false }));
     });
 
-    centrifuge.connect();
+    centrifuge.on('error', (ctx) => {
+        console.error('Centrifuge error:', ctx);
+    });
+
+    try {
+        centrifuge.connect();
+    } catch (error) {
+        console.error('Failed to connect:', error);
+    }
 };
 
 export const subscribeToTopic = (topic: string) => {
