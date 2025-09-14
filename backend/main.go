@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
-	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -11,11 +11,12 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/centrifugal/centrifuge"
 )
 
 const (
-	centrifugeSecret = "my-secret-key" // Same as in centrifuge config
-	jwtSecret        = "jwt-secret-key"
+	jwtSecret = "jwt-secret-key"
 )
 
 type User struct {
@@ -30,9 +31,16 @@ type LoginRequest struct {
 }
 
 type LoginResponse struct {
-	Token           string `json:"token"`
-	CentrifugeToken string `json:"centrifuge_token"`
-	User            User   `json:"user"`
+	Token string `json:"token"`
+	User  User   `json:"user"`
+}
+
+type ChatMessage struct {
+	ID        string    `json:"id"`
+	Username  string    `json:"username"`
+	Message   string    `json:"message"`
+	Timestamp time.Time `json:"timestamp"`
+	Topic     string    `json:"topic"`
 }
 
 // Simple JWT-like token generation (for demo purposes)
@@ -42,26 +50,6 @@ func generateSimpleToken(userID, username string) string {
 	h.Write([]byte(payload))
 	signature := hex.EncodeToString(h.Sum(nil))
 	return fmt.Sprintf("%s.%s", hex.EncodeToString([]byte(payload)), signature)
-}
-
-// Generate Centrifuge connection token
-func generateCentrifugeToken(userID, username string) string {
-	exp := time.Now().Add(24 * time.Hour).Unix()
-	
-	// Create proper JWT-like token for Centrifuge
-	header := `{"alg":"HS256","typ":"JWT"}`
-	payload := fmt.Sprintf(`{"sub":"%s","exp":%d,"info":{"username":"%s"}}`, userID, exp, username)
-	
-	headerBase64 := base64.RawURLEncoding.EncodeToString([]byte(header))
-	payloadBase64 := base64.RawURLEncoding.EncodeToString([]byte(payload))
-	
-	message := headerBase64 + "." + payloadBase64
-	
-	h := hmac.New(sha256.New, []byte(centrifugeSecret))
-	h.Write([]byte(message))
-	signature := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
-	
-	return message + "." + signature
 }
 
 // Validate simple token
@@ -159,28 +147,12 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		Email:    fmt.Sprintf("%s@example.com", req.Username),
 	}
 
-	// Generate tokens
+	// Generate token
 	jwtToken := generateSimpleToken(userID, req.Username)
-	centrifugeToken := generateCentrifugeToken(userID, req.Username)
 
 	response := LoginResponse{
-		Token:           jwtToken,
-		CentrifugeToken: centrifugeToken,
-		User:            user,
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
-
-func refreshCentrifugeTokenHandler(w http.ResponseWriter, r *http.Request) {
-	userID := r.Header.Get("UserID")
-	username := r.Header.Get("Username")
-
-	centrifugeToken := generateCentrifugeToken(userID, username)
-
-	response := map[string]string{
-		"centrifuge_token": centrifugeToken,
+		Token: jwtToken,
+		User:  user,
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -201,11 +173,51 @@ func userInfoHandler(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(user)
 }
 
+// Centrifuge event handlers
+func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+	// Get token from event
+	token := e.Token
+	if token == "" {
+		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
+	}
+	
+	_, username, valid := validateToken(token)
+	if !valid {
+		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
+	}
+
+	return centrifuge.ConnectReply{
+		Data: []byte(fmt.Sprintf(`{"user":"%s"}`, username)),
+		Subscriptions: map[string]centrifuge.SubscribeOptions{
+			"chat:general": {},
+			"chat:tech":    {},
+			"chat:random":  {},
+		},
+	}, nil
+}
+
 func main() {
-	// Routes
+	// Create Centrifuge node
+	node, err := centrifuge.New(centrifuge.Config{
+		LogLevel: centrifuge.LogLevelInfo,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	// Set up event handlers
+	node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
+		return authHandler(ctx, e)
+	})
+
+	// Start Centrifuge node
+	if err := node.Run(); err != nil {
+		log.Fatal(err)
+	}
+
+	// Setup HTTP routes
 	http.HandleFunc("/api/login", corsMiddleware(loginHandler))
 	http.HandleFunc("/api/user", corsMiddleware(authMiddleware(userInfoHandler)))
-	http.HandleFunc("/api/centrifuge-token", corsMiddleware(authMiddleware(refreshCentrifugeTokenHandler)))
 	
 	// Health check
 	http.HandleFunc("/api/health", corsMiddleware(func(w http.ResponseWriter, r *http.Request) {
@@ -213,6 +225,17 @@ func main() {
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 	}))
 
+	// WebSocket handler for Centrifuge
+	wsHandler := centrifuge.NewWebsocketHandler(node, centrifuge.WebsocketConfig{
+		ReadBufferSize:     1024,
+		UseWriteBufferPool: true,
+		CheckOrigin: func(r *http.Request) bool {
+			return true // Allow all origins for demo
+		},
+	})
+	http.Handle("/connection/websocket", wsHandler)
+
 	log.Println("Server starting on :3001")
+	log.Println("WebSocket endpoint: ws://localhost:3001/connection/websocket")
 	log.Fatal(http.ListenAndServe(":3001", nil))
 }

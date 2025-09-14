@@ -1,8 +1,8 @@
 # Centrifuge Chat Application
 
 A real-time topic-based messaging application built with:
-- **Centrifuge** - Real-time messaging server
-- **Go Backend** - JWT authentication and API endpoints  
+- **Centrifuge Go Library** - Integrated real-time messaging within Go backend
+- **Go Backend** - JWT authentication, API endpoints, and WebSocket server  
 - **SvelteKit Frontend** - Modern web interface
 
 ## Screenshots
@@ -16,35 +16,27 @@ A real-time topic-based messaging application built with:
 ## Architecture
 
 ```
-├── centrifuge/     # Docker Compose setup for Centrifuge server
-├── backend/        # Go server with JWT authentication
+├── backend/        # Go server with integrated Centrifuge, JWT auth, and WebSocket
 ├── frontend/       # SvelteKit web application
 └── README.md
 ```
 
+The application now uses a simplified two-tier architecture where the Centrifuge library is directly integrated into the Go backend, eliminating the need for a separate Centrifuge server.
+
 ## Quick Start
 
-### 1. Start Centrifuge Server
-
-```bash
-cd centrifuge
-docker compose up -d
-```
-
-The Centrifuge server will be available at:
-- WebSocket: `ws://localhost:8000/connection/websocket`
-- Admin Panel: http://localhost:8000/admin (admin/admin)
-
-### 2. Start Go Backend
+### 1. Start Go Backend
 
 ```bash
 cd backend
 go run main.go
 ```
 
-The API server will be available at http://localhost:3001
+The server provides:
+- API endpoints at http://localhost:3001
+- WebSocket endpoint at ws://localhost:3001/connection/websocket
 
-### 3. Start Frontend
+### 2. Start Frontend
 
 ```bash
 cd frontend
@@ -56,12 +48,13 @@ The web application will be available at http://localhost:5173
 
 ## Features
 
-- **Real-time messaging** via WebSocket connection to Centrifuge
+- **Real-time messaging** via integrated Centrifuge WebSocket server
 - **Topic-based channels** (general, tech, random)
 - **JWT authentication** with secure token generation
 - **Persistent login** with localStorage
 - **Responsive UI** with modern design
 - **Multi-user support** with live message updates
+- **Simplified deployment** with integrated architecture
 
 ## Demo Usage
 
@@ -76,33 +69,29 @@ You can open multiple browser tabs/windows to test multi-user functionality.
 
 - `POST /api/login` - User authentication
 - `GET /api/user` - Get user information (protected)
-- `POST /api/centrifuge-token` - Refresh Centrifuge token (protected)
 - `GET /api/health` - Health check
+- `ws://localhost:3001/connection/websocket` - WebSocket endpoint for real-time messaging
 
 ## Configuration
-
-### Centrifuge
-- Port: 8000
-- Secret Key: `my-secret-key`
-- Namespaces: `chat:*` with history enabled
 
 ### Backend
 - Port: 3001  
 - JWT Secret: `jwt-secret-key`
-- Centrifuge Secret: `my-secret-key` (matches Centrifuge)
+- Integrated Centrifuge with configurable channels
+- CORS enabled for localhost:5173
 
 ### Frontend
 - Port: 5173 (dev mode)
-- Connects to backend at http://localhost:3001
-- Connects to Centrifuge at ws://localhost:8000
+- Connects to backend API at http://localhost:3001
+- Connects to WebSocket at ws://localhost:3001/connection/websocket
 
 ## Development
 
-Each component can be developed independently:
+The simplified architecture allows for easier development:
 
-- **Centrifuge**: Modify `centrifuge/config.json` for server settings
-- **Backend**: Standard Go development with live reload
+- **Backend**: Standard Go development with integrated Centrifuge library
 - **Frontend**: SvelteKit with hot reload and TypeScript support
+- **Single token authentication**: No separate Centrifuge tokens needed
 
 ## Production Notes
 
@@ -112,3 +101,4 @@ For production deployment:
 3. Use HTTPS/WSS connections
 4. Set up proper authentication database
 5. Configure reverse proxy (nginx/traefik)
+6. Consider scaling with Redis broker for multi-node deployments

@@ -26,7 +26,7 @@ export const connectToCentrifuge = (token: string) => {
         centrifuge.disconnect();
     }
 
-    centrifuge = new Centrifuge('ws://localhost:8000/connection/websocket', {
+    centrifuge = new Centrifuge('ws://localhost:3001/connection/websocket', {
         token: token
     });
 

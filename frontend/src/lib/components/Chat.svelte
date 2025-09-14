@@ -11,8 +11,8 @@
 	}
 
 	onMount(() => {
-		if ($authStore.centrifugeToken) {
-			connectToCentrifuge($authStore.centrifugeToken);
+		if ($authStore.token) {
+			connectToCentrifuge($authStore.token);
 			// Subscribe to default topic
 			subscribeToTopic('general');
 		}

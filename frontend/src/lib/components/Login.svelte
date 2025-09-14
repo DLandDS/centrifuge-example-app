@@ -21,7 +21,7 @@
 			const credentials: LoginRequest = { username, password };
 			const response = await apiClient.login(credentials);
 			
-			login(response.token, response.centrifuge_token, response.user);
+			login(response.token, response.user);
 		} catch (err) {
 			error = err instanceof Error ? err.message : 'Login failed';
 		} finally {

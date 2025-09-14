@@ -46,12 +46,6 @@ class ApiClient {
         return this.request<User>('/user');
     }
 
-    async refreshCentrifugeToken(): Promise<{ centrifuge_token: string }> {
-        return this.request<{ centrifuge_token: string }>('/centrifuge-token', {
-            method: 'POST',
-        });
-    }
-
     async healthCheck(): Promise<{ status: string }> {
         return this.request<{ status: string }>('/health');
     }

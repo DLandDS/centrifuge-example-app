@@ -1,5 +1,6 @@
 # Build artifacts
 backend/server
+backend/centrifuge-chat-backend
 frontend/.svelte-kit/
 frontend/build/
 frontend/dist/

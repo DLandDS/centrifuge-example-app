@@ -11,7 +11,6 @@ export interface LoginRequest {
 
 export interface LoginResponse {
     token: string;
-    centrifuge_token: string;
     user: User;
 }
 
