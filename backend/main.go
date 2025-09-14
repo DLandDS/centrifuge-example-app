@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/hmac"
 	"crypto/sha256"
+	"encoding/base64"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -46,13 +47,21 @@ func generateSimpleToken(userID, username string) string {
 // Generate Centrifuge connection token
 func generateCentrifugeToken(userID, username string) string {
 	exp := time.Now().Add(24 * time.Hour).Unix()
+	
+	// Create proper JWT-like token for Centrifuge
+	header := `{"alg":"HS256","typ":"JWT"}`
 	payload := fmt.Sprintf(`{"sub":"%s","exp":%d,"info":{"username":"%s"}}`, userID, exp, username)
 	
-	h := hmac.New(sha256.New, []byte(centrifugeSecret))
-	h.Write([]byte(payload))
-	signature := hex.EncodeToString(h.Sum(nil))
+	headerBase64 := base64.RawURLEncoding.EncodeToString([]byte(header))
+	payloadBase64 := base64.RawURLEncoding.EncodeToString([]byte(payload))
 	
-	return fmt.Sprintf("%s.%s", hex.EncodeToString([]byte(payload)), signature)
+	message := headerBase64 + "." + payloadBase64
+	
+	h := hmac.New(sha256.New, []byte(centrifugeSecret))
+	h.Write([]byte(message))
+	signature := base64.RawURLEncoding.EncodeToString(h.Sum(nil))
+	
+	return message + "." + signature
 }
 
 // Validate simple token

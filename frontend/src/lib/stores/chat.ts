@@ -53,6 +53,8 @@ export const subscribeToTopic = (topic: string) => {
     // Unsubscribe from current topic
     if (currentSubscription) {
         currentSubscription.unsubscribe();
+        currentSubscription.removeAllListeners();
+        currentSubscription = null;
     }
 
     // Subscribe to new topic
