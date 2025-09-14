@@ -6,7 +6,7 @@ export interface User {
 
 export interface LoginRequest {
     username: string;
-    password: string;
+    password?: string; // Make password optional
 }
 
 export interface LoginResponse {

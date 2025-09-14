@@ -133,13 +133,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Simple user validation (in real app, check against database)
-	if req.Username == "" || req.Password == "" {
-		http.Error(w, "Username and password required", http.StatusBadRequest)
+	// Simple user validation - only username required
+	if req.Username == "" {
+		http.Error(w, "Username required", http.StatusBadRequest)
 		return
 	}
 
-	// For demo purposes, accept any non-empty credentials
+	// For demo purposes, accept any non-empty username (password is optional)
 	userID := fmt.Sprintf("user_%s", req.Username)
 	user := User{
 		ID:       userID,
@@ -177,15 +177,19 @@ func userInfoHandler(w http.ResponseWriter, r *http.Request) {
 func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 	// Get token from event
 	token := e.Token
+	log.Printf("Centrifuge auth attempt with token: %s", token)
 	if token == "" {
+		log.Printf("Centrifuge auth failed: no token provided")
 		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
 	}
 	
 	_, username, valid := validateToken(token)
 	if !valid {
+		log.Printf("Centrifuge auth failed: invalid token")
 		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
 	}
 
+	log.Printf("Centrifuge auth successful for user: %s", username)
 	return centrifuge.ConnectReply{
 		Data: []byte(fmt.Sprintf(`{"user":"%s"}`, username)),
 		Subscriptions: map[string]centrifuge.SubscribeOptions{
