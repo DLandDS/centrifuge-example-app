@@ -4,13 +4,12 @@
 	import type { LoginRequest } from '$lib/types';
 
 	let username = '';
-	let password = '';
 	let isLoading = false;
 	let error = '';
 
 	const handleSubmit = async () => {
-		if (!username || !password) {
-			error = 'Please enter both username and password';
+		if (!username.trim()) {
+			error = 'Please enter a username';
 			return;
 		}
 
@@ -18,7 +17,7 @@
 		error = '';
 
 		try {
-			const credentials: LoginRequest = { username, password };
+			const credentials: LoginRequest = { username: username.trim() };
 			const response = await apiClient.login(credentials);
 			
 			login(response.token, response.user);
@@ -47,18 +46,6 @@
 				/>
 			</div>
 
-			<div class="form-group">
-				<label for="password">Password:</label>
-				<input
-					id="password"
-					type="password"
-					bind:value={password}
-					placeholder="Enter your password"
-					disabled={isLoading}
-					required
-				/>
-			</div>
-
 			{#if error}
 				<div class="error">{error}</div>
 			{/if}
@@ -69,7 +56,7 @@
 		</form>
 
 		<div class="demo-info">
-			<p><strong>Demo:</strong> You can use any username and password to login</p>
+			<p><strong>Demo:</strong> Just enter any username to login - no password required!</p>
 		</div>
 	</div>
 </div>
