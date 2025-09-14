@@ -183,22 +183,15 @@ func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.Con
 		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
 	}
 	
-	_, username, valid := validateToken(token)
+	userID, username, valid := validateToken(token)
 	if !valid {
 		log.Printf("Centrifuge auth failed: invalid token")
 		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
 	}
 
-	log.Printf("Centrifuge auth successful for user: %s", username)
-	return centrifuge.ConnectReply{
-		Data: []byte(fmt.Sprintf(`{"user":"%s"}`, username)),
-		// Remove auto-subscriptions for now to test connection
-		// Subscriptions: map[string]centrifuge.SubscribeOptions{
-		//	"chat:general": {},
-		//	"chat:tech":    {},
-		//	"chat:random":  {},
-		// },
-	}, nil
+	log.Printf("Centrifuge auth successful for user: %s (ID: %s)", username, userID)
+	// Return minimal response to test connection
+	return centrifuge.ConnectReply{}, nil
 }
 
 func main() {
