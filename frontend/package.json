@@ -1,0 +1,26 @@
+{
+  "name": "centrifuge-chat-frontend",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "dev": "rollup -c -w",
+    "start": "sirv public --single"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^24.0.0",
+    "@rollup/plugin-node-resolve": "^15.0.0",
+    "@rollup/plugin-replace": "^6.0.2",
+    "rollup": "^2.79.0",
+    "rollup-plugin-css-only": "^4.0.0",
+    "rollup-plugin-livereload": "^2.0.0",
+    "rollup-plugin-polyfill-node": "^0.13.0",
+    "rollup-plugin-svelte": "^7.0.0",
+    "rollup-plugin-terser": "^7.0.0",
+    "sirv-cli": "^2.0.0",
+    "svelte": "^4.0.0"
+  },
+  "dependencies": {
+    "centrifuge": "^4.0.0"
+  }
+}
