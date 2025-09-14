@@ -5,6 +5,14 @@ A real-time topic-based messaging application built with:
 - **Go Backend** - JWT authentication and API endpoints  
 - **SvelteKit Frontend** - Modern web interface
 
+## Screenshots
+
+### Login Page
+![Login Page](login-page.png)
+
+### Chat Interface with Real-time Messaging
+![Working Chat](working-chat-final.png)
+
 ## Architecture
 
 ```
@@ -20,7 +28,7 @@ A real-time topic-based messaging application built with:
 
 ```bash
 cd centrifuge
-docker-compose up -d
+docker compose up -d
 ```
 
 The Centrifuge server will be available at:
@@ -53,6 +61,7 @@ The web application will be available at http://localhost:5173
 - **JWT authentication** with secure token generation
 - **Persistent login** with localStorage
 - **Responsive UI** with modern design
+- **Multi-user support** with live message updates
 
 ## Demo Usage
 
