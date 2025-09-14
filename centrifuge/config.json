@@ -1,0 +1,23 @@
+{
+  "token_hmac_secret_key": "my-secret-key",
+  "api_key": "my-api-key",
+  "admin_password": "admin",
+  "admin_secret": "admin-secret",
+  "allowed_origins": [
+    "http://localhost:5173",
+    "http://localhost:3000"
+  ],
+  "websocket_compression": true,
+  "allow_subscribe_for_client": true,
+  "allow_publish_for_client": true,
+  "allow_history_for_client": true,
+  "namespaces": [
+    {
+      "name": "chat",
+      "publish": true,
+      "subscribe": true,
+      "history_size": 100,
+      "history_ttl": "24h"
+    }
+  ]
+}
