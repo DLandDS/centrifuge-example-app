@@ -81,6 +81,9 @@
 					<div class="message">
 						<div class="message-header">
 							<span class="username">{message.username}</span>
+							{#if $chatStore.activeTopic === 'all'}
+								<span class="channel-badge">#{message.topic}</span>
+							{/if}
 							<span class="timestamp">{formatTime(message.timestamp)}</span>
 						</div>
 						<div class="message-content">{message.content}</div>
@@ -89,7 +92,11 @@
 				{#if $chatStore.messages.length === 0}
 					<div class="no-messages">
 						{#if $chatStore.activeTopic}
-							No messages in #{$chatStore.activeTopic} yet. Start the conversation!
+							{#if $chatStore.activeTopic === 'all'}
+								No messages in any channel yet. Select a specific topic to start chatting!
+							{:else}
+								No messages in #{$chatStore.activeTopic} yet. Start the conversation!
+							{/if}
 						{:else}
 							Select a topic to start chatting
 						{/if}
@@ -97,7 +104,7 @@
 				{/if}
 			</div>
 
-			{#if $chatStore.activeTopic}
+			{#if $chatStore.activeTopic && $chatStore.activeTopic !== 'all'}
 				<div class="message-input">
 					<form on:submit|preventDefault={handleSendMessage}>
 						<input
@@ -249,6 +256,16 @@
 	.username {
 		font-weight: bold;
 		color: #0066cc;
+	}
+
+	.channel-badge {
+		background-color: #e1f5fe;
+		color: #0277bd;
+		padding: 0.2rem 0.5rem;
+		border-radius: 12px;
+		font-size: 0.75rem;
+		font-weight: 500;
+		margin: 0 0.5rem;
 	}
 
 	.timestamp {
