@@ -178,6 +178,7 @@ func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.Con
 	// Get token from event
 	token := e.Token
 	log.Printf("Centrifuge auth attempt with token: %s", token)
+	
 	if token == "" {
 		log.Printf("Centrifuge auth failed: no token provided")
 		return centrifuge.ConnectReply{}, centrifuge.DisconnectInvalidToken
@@ -190,8 +191,13 @@ func authHandler(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.Con
 	}
 
 	log.Printf("Centrifuge auth successful for user: %s (ID: %s)", username, userID)
-	// Return minimal response to test connection
-	return centrifuge.ConnectReply{}, nil
+	// Return proper user credentials in the reply
+	return centrifuge.ConnectReply{
+		Credentials: &centrifuge.Credentials{
+			UserID: userID,
+			Info:   []byte(fmt.Sprintf(`{"username": "%s"}`, username)),
+		},
+	}, nil
 }
 
 func main() {
@@ -207,6 +213,37 @@ func main() {
 	node.OnConnecting(func(ctx context.Context, e centrifuge.ConnectEvent) (centrifuge.ConnectReply, error) {
 		log.Printf("OnConnecting called")
 		return authHandler(ctx, e)
+	})
+
+	// Handle connection - this is where we can set up per-client handlers
+	node.OnConnect(func(client *centrifuge.Client) {
+		log.Printf("OnConnect called for client: %s", client.ID())
+		
+		// Set up subscription handlers for this client
+		client.OnSubscribe(func(e centrifuge.SubscribeEvent, cb centrifuge.SubscribeCallback) {
+			log.Printf("Client %s subscribing to channel: %s", client.ID(), e.Channel)
+			
+			// Allow subscription to channels that start with "chat:"
+			if !strings.HasPrefix(e.Channel, "chat:") {
+				cb(centrifuge.SubscribeReply{}, centrifuge.ErrorPermissionDenied)
+				return
+			}
+			
+			cb(centrifuge.SubscribeReply{}, nil)
+		})
+
+		// Handle client publishing messages
+		client.OnPublish(func(e centrifuge.PublishEvent, cb centrifuge.PublishCallback) {
+			log.Printf("Client %s publishing to channel: %s", client.ID(), e.Channel)
+			
+			// Allow publishing to channels that start with "chat:"
+			if !strings.HasPrefix(e.Channel, "chat:") {
+				cb(centrifuge.PublishReply{}, centrifuge.ErrorPermissionDenied)
+				return
+			}
+			
+			cb(centrifuge.PublishReply{}, nil)
+		})
 	})
 
 	// Start Centrifuge node
